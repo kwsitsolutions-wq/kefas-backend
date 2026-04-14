@@ -60,7 +60,7 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         
         # --- USANDO EL MODELO QUE SOLICITASTE ---
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.0-flash',
             contents=prompt
         )
         blueprint_ia = response.text
