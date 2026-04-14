@@ -47,9 +47,8 @@ async def procesar_cuestionario(datos: Lead):
         Redacta un análisis interno breve sobre la viabilidad de este cliente y genera un borrador de correo confirmando que entregaremos una propuesta en 48 horas.
         """
         
-       # Usando el modelo actualizado
-        response = client.models.generate_content(
-            model='gemini-1.5-flash',
+       response = client.models.generate_content(
+            model='gemini-2.5-flash',
             contents=prompt
         )
         analisis_generado = response.text
