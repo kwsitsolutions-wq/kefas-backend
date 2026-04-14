@@ -33,7 +33,7 @@ async def procesar_cuestionario(datos: Lead):
         }
         
     try:
-        # Conexión con el nuevo SDK de Gemini
+        # 1. Análisis con Inteligencia Artificial
         client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
         
         prompt = f"""
@@ -47,12 +47,29 @@ async def procesar_cuestionario(datos: Lead):
         Redacta un análisis interno breve sobre la viabilidad de este cliente y genera un borrador de correo confirmando que entregaremos una propuesta en 48 horas.
         """
         
-  # Usando el modelo actual gratuito
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt
         )
         analisis_generado = response.text
+        
+        # 2. Guardado en la Base de Datos de Hostinger
+        conexion = mysql.connector.connect(
+            host=os.environ.get("DB_HOST"),
+            user="u365762194_pedro_admin",
+            password=os.environ.get("DB_PASSWORD"),
+            database="u365762194_agencia"
+        )
+        
+        cursor = conexion.cursor()
+        sql = "INSERT INTO prospectos (nombre, empresa, email, mensaje, analisis_ia) VALUES (%s, %s, %s, %s, %s)"
+        valores = (datos.nombre, datos.empresa, datos.email, datos.mensaje_proyecto, analisis_generado)
+        
+        cursor.execute(sql, valores)
+        conexion.commit()
+        
+        cursor.close()
+        conexion.close()
         
         return {
             "status": "aprobado", 
