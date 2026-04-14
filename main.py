@@ -49,19 +49,21 @@ async def procesar_cuestionario(datos: Lead, request: Request):
     # --- 2. MOTOR DE INTELIGENCIA ARTIFICIAL ---
     blueprint_ia = "PENDIENTE: Revisión manual requerida por alta demanda."
     
-    try:
-        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+try:
+        # Forzamos la versión estable 'v1' para tu cuenta de pago
+        client = genai.Client(
+            api_key=os.environ.get("GEMINI_API_KEY"),
+            http_options={'api_version': 'v1'}
+        )
         
         prompt = f"""
         Actúa como Director de Arte Senior. Genera Ficha Técnica y 2 Prompts de Imagen (A y B).
         Empresa: {datos.nombre_empresa}. Sector: {datos.sector}. Visión: {datos.vision_proyecto}.
-        Referencias: {datos.links_cliente}
         """
         
-        # --- USANDO EL MODELO QUE SOLICITASTE ---
-      # Este es el modelo optimizado para cuentas de pago
+        # Usamos el nombre simplificado que acepta la versión v1
         response = client.models.generate_content(
-            model='gemini-1.5-flash', # <--- CAMBIA ESTO AQUÍ
+            model='gemini-1.5-flash',
             contents=prompt
         )
         blueprint_ia = response.text
