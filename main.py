@@ -61,7 +61,7 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         # --- USANDO EL MODELO QUE SOLICITASTE ---
       # Este es el modelo optimizado para cuentas de pago
         response = client.models.generate_content(
-        model='gemini-2.5-flash', # <--- Este es el modelo de producción
+        model='gemini-2.0-flash', # <--- Este es el modelo de producción
         contents=prompt
         )
         blueprint_ia = response.text
