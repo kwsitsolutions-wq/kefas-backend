@@ -62,10 +62,11 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         Referencias: {datos.links_cliente}
         """
         
-            response = client.models.generate_content(
+response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt
         )
+
         blueprint_ia = response.text
         
     except Exception as e:
