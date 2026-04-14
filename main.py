@@ -6,7 +6,8 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 
-app = FastAPI(title="Kefas Shielded Engine - v2.0")
+# --- ARCANO KEFAS: ENGINE v2.5 ---
+app = FastAPI(title="Kefas High-End Engine")
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,8 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Diccionario para controlar el tiempo entre envíos por IP (Sesión de seguridad)
-# Usaremos 120 segundos para máxima protección
+# Diccionario de seguridad por IP (Bloqueo de 2 minutos)
 last_request_time = {}
 
 class Lead(BaseModel):
@@ -31,29 +31,25 @@ class Lead(BaseModel):
 
 @app.post("/procesar-cuestionario")
 async def procesar_cuestionario(datos: Lead, request: Request):
-    # --- CONTROL DE SEGURIDAD (ANTISPAM 2 MINUTOS) ---
+    # --- 1. SEGURIDAD DE ACCESO (120 SEGUNDOS) ---
     client_ip = request.client.host
     current_time = time.time()
-    TIEMPO_ESPERA = 120 # 2 minutos exactos
+    TIEMPO_BLOQUEO = 120 
     
     if client_ip in last_request_time:
-        tiempo_transcurrido = current_time - last_request_time[client_ip]
-        if tiempo_transcurrido < TIEMPO_ESPERA:
-            tiempo_restante = int(TIEMPO_ESPERA - tiempo_transcurrido)
+        if current_time - last_request_time[client_ip] < TIEMPO_BLOQUEO:
+            tiempo_restante = int(TIEMPO_BLOQUEO - (current_time - last_request_time[client_ip]))
             raise HTTPException(
                 status_code=429, 
-                detail=f"Seguridad activa: Por favor, espera {tiempo_restante} segundos para enviar otra solicitud."
+                detail=f"Seguridad activa. Espera {tiempo_restante} segundos."
             )
     
-    # Actualizamos el tiempo del último envío exitoso
     last_request_time[client_ip] = current_time
-    # ------------------------------------------------
 
-    # Valor por defecto si la IA falla
-    blueprint_ia = "PENDIENTE: El sistema de IA está bajo alta demanda. Pedro revisará tu visión manualmente."
+    # --- 2. MOTOR DE INTELIGENCIA ARTIFICIAL ---
+    blueprint_ia = "PENDIENTE: Revisión manual requerida por alta demanda."
     
     try:
-        # Intento de generar contenido con Gemini
         client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
         
         prompt = f"""
@@ -62,19 +58,17 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         Referencias: {datos.links_cliente}
         """
         
-response = client.models.generate_content(
+        # --- USANDO EL MODELO QUE SOLICITASTE ---
+        response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt
         )
-
         blueprint_ia = response.text
         
     except Exception as e:
-        # Si Gemini falla por cuota o error, el proceso NO se detiene
-        print(f"ALERTA: Error en Gemini (posible saturación): {e}")
-        # Mantenemos el valor de 'blueprint_ia' como PENDIENTE
+        print(f"Log: Fallo en IA (pero guardando datos): {e}")
 
-    # --- GUARDADO OBLIGATORIO EN HOSTINGER ---
+    # --- 3. PERSISTENCIA EN HOSTINGER ---
     try:
         conexion = mysql.connector.connect(
             host=os.environ.get("DB_HOST"),
@@ -100,11 +94,7 @@ response = client.models.generate_content(
         conexion.close()
         
     except Exception as db_e:
-        print(f"ERROR CRÍTICO DB: {db_e}")
-        raise HTTPException(status_code=500, detail="Error de conexión con el servidor de datos.")
+        print(f"Log: Fallo en DB: {db_e}")
+        raise HTTPException(status_code=500, detail="Error de conexión con la base de datos.")
 
-    return {
-        "status": "success", 
-        "message": "Información recibida correctamente", 
-        "ia_status": "completado" if "PENDIENTE" not in blueprint_ia else "pendiente"
-    }
+    return {"status": "success", "ia_status": "completado" if "PENDIENTE" not in blueprint_ia else "pendiente"}
