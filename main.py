@@ -54,7 +54,7 @@ async def procesar_cuestionario(datos: Lead, request: Request):
     blueprint_ia = "PENDIENTE: Revisión manual requerida por alta demanda."
     
     try:
-        # Forzamos la versión v1 de producción para evitar errores 404
+        # Forzamos la versión v1 de producción para usar tus $10 USD
         client = genai.Client(
             api_key=os.environ.get("GEMINI_API_KEY"),
             http_options={'api_version': 'v1'}
@@ -66,7 +66,7 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         Referencias: {datos.links_cliente}
         """
         
-        # Usamos el modelo estable que Google garantiza para el plan de pago
+        # Modelo estable para plan de pago
         response = client.models.generate_content(
             model='gemini-1.5-flash',
             contents=prompt
