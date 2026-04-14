@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 
-# --- ARCANO KEFAS: ENGINE v2.5 ---
+# --- ARCANO KEFAS: ENGINE v2.6 (PAID PRODUCTION) ---
 app = FastAPI(title="Kefas High-End Engine")
 
 app.add_middleware(
@@ -29,6 +29,10 @@ class Lead(BaseModel):
     vision_proyecto: str
     links_cliente: str = ""
 
+@app.get("/")
+async def root():
+    return {"status": "Arcano Kefas Engine is Running"}
+
 @app.post("/procesar-cuestionario")
 async def procesar_cuestionario(datos: Lead, request: Request):
     # --- 1. SEGURIDAD DE ACCESO (120 SEGUNDOS) ---
@@ -46,11 +50,11 @@ async def procesar_cuestionario(datos: Lead, request: Request):
     
     last_request_time[client_ip] = current_time
 
-    # --- 2. MOTOR DE INTELIGENCIA ARTIFICIAL ---
+    # --- 2. MOTOR DE INTELIGENCIA ARTIFICIAL (PAID TIER) ---
     blueprint_ia = "PENDIENTE: Revisión manual requerida por alta demanda."
     
-try:
-        # Forzamos la versión estable 'v1' para tu cuenta de pago
+    try:
+        # Forzamos la versión v1 de producción para evitar errores 404
         client = genai.Client(
             api_key=os.environ.get("GEMINI_API_KEY"),
             http_options={'api_version': 'v1'}
@@ -59,9 +63,10 @@ try:
         prompt = f"""
         Actúa como Director de Arte Senior. Genera Ficha Técnica y 2 Prompts de Imagen (A y B).
         Empresa: {datos.nombre_empresa}. Sector: {datos.sector}. Visión: {datos.vision_proyecto}.
+        Referencias: {datos.links_cliente}
         """
         
-        # Usamos el nombre simplificado que acepta la versión v1
+        # Usamos el modelo estable que Google garantiza para el plan de pago
         response = client.models.generate_content(
             model='gemini-1.5-flash',
             contents=prompt
@@ -100,4 +105,7 @@ try:
         print(f"Log: Fallo en DB: {db_e}")
         raise HTTPException(status_code=500, detail="Error de conexión con la base de datos.")
 
-    return {"status": "success", "ia_status": "completado" if "PENDIENTE" not in blueprint_ia else "pendiente"}
+    return {
+        "status": "success", 
+        "ia_status": "completado" if "PENDIENTE" not in blueprint_ia else "pendiente"
+    }
