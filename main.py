@@ -5,10 +5,8 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 
-# 1. Configuración de la API para Arcano Kefas
-app = FastAPI(title="Kefas Design Architect - Sistema de Producción")
+app = FastAPI(title="Kefas High-End Design Engine")
 
-# 2. Permisos CORS para conectar con Lovable
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -17,7 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. Estructura de datos que Lovable debe enviar
+# Estructura de datos completa
 class Lead(BaseModel):
     nombre_empresa: str
     representante: str
@@ -30,42 +28,26 @@ class Lead(BaseModel):
 @app.post("/procesar-cuestionario")
 async def procesar_cuestionario(datos: Lead):
     try:
-        # 4. Conexión con Gemini (El Cerebro de Diseño)
         client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
         
-        # EL PROMPT MAESTRO: Genera la comparativa y los prompts de imagen
+        # PROMPT INTERNO DE PRODUCCIÓN
         prompt = f"""
-        Actúa como Director de Arte Senior y Estratega de Diseño Web de 'Kefas Digital'. 
-        Tu objetivo es generar un INFORME DE PRODUCCIÓN INTERNO para Pedro (Dueño de la Agencia). 
-        Este informe es confidencial y servirá para crear la propuesta visual.
+        Actúa como Director de Arte Senior de 'Kefas Digital'. 
+        Genera un INFORME DE PRODUCCIÓN INTERNO para Pedro.
         
-        DATOS DEL PROYECTO:
-        - EMPRESA: {datos.nombre_empresa}
-        - REPRESENTANTE: {datos.representante}
+        DATOS:
+        - EMPRESA: {datos.nombre_empresa} (Rep: {datos.representante})
         - SECTOR: {datos.sector}
-        - VISIÓN DEL CLIENTE: {datos.vision_proyecto}
-        - REFERENCIAS QUE LE GUSTAN AL CLIENTE: {datos.links_cliente}
+        - VISIÓN: {datos.vision_proyecto}
+        - REF. CLIENTE: {datos.links_cliente}
 
-        ENTREGA ESTA ESTRUCTURA DE PRODUCCIÓN:
-
-        1. ANÁLISIS ESTRATÉGICO: 
-           Analiza los links del cliente ({datos.links_cliente}). Identifica qué elementos estéticos le atraen y cómo podemos elevar esa idea usando nuestros estándares de alta gama.
-
-        2. FICHA TÉCNICA (BLUEPRINT): 
-           - Concepto visual sugerido.
-           - Paleta de Colores HEX (3 códigos principales).
-           - Tipografías recomendadas.
-           - Estructura de navegación para los programadores.
-
-        3. GENERADOR DE PROMPTS PARA IMÁGENES (MIDJOURNEY/DALL-E):
-           Crea 2 Prompts detallados en INGLÉS para que Pedro genere mockups visuales. Estos deben permitirle comparar la visión del cliente con las plantillas internas de la agencia:
-           - PROMPT A (Evolución Directa): Lleva la visión de '{datos.vision_proyecto}' a un nivel ultra-profesional y moderno.
-           - PROMPT B (Vanguardia Kefas): Un diseño disruptivo y sofisticado basado en el sector {datos.sector}, con iluminación cinematográfica y UI de última generación.
-
-        4. LINKS DE BENCHMARKING: 
-           Proporciona 2 links de sitios web reales (Awwwards/Behance) que representen el 'Nivel 10' de diseño para este sector.
-
-        Usa un tono técnico, estratégico y directo.
+        ENTREGA:
+        1. ANÁLISIS ESTRATÉGICO: Comparativa de referencias vs. estándares de Arcano Kefas.
+        2. FICHA TÉCNICA: Colores HEX, Tipografía y Estructura.
+        3. GENERADOR DE PROMPTS (MIDJOURNEY/DALL-E): 
+           - Prompt 1: Evolución técnica de la idea del cliente.
+           - Prompt 2: Propuesta disruptiva de alta gama para {datos.sector}.
+        4. BENCHMARKING: 2 links de sitios nivel mundial.
         """
         
         response = client.models.generate_content(
@@ -74,7 +56,7 @@ async def procesar_cuestionario(datos: Lead):
         )
         blueprint_ia = response.text
         
-        # 5. Guardado en la Memoria (Base de Datos Hostinger)
+        # Conexión y guardado en los nuevos campos
         conexion = mysql.connector.connect(
             host=os.environ.get("DB_HOST"),
             user="u365762194_pedro_admin",
@@ -84,11 +66,20 @@ async def procesar_cuestionario(datos: Lead):
         
         cursor = conexion.cursor()
         
-        # Consolidamos metadatos de contacto para tu control en la base de datos
-        detalles_contacto = f"Rep: {datos.representante} | WA: {datos.whatsapp} | Visión: {datos.vision_proyecto} | Links: {datos.links_cliente}"
+        sql = """INSERT INTO prospectos 
+                 (nombre_empresa, representante, sector, whatsapp, email, vision_proyecto, links_cliente, analisis_ia) 
+                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
         
-        sql = "INSERT INTO prospectos (nombre, empresa, email, mensaje, analisis_ia) VALUES (%s, %s, %s, %s, %s)"
-        valores = (datos.nombre_empresa, datos.sector, datos.email, detalles_contacto, blueprint_ia)
+        valores = (
+            datos.nombre_empresa, 
+            datos.representante, 
+            datos.sector, 
+            datos.whatsapp, 
+            datos.email, 
+            datos.vision_proyecto, 
+            datos.links_cliente, 
+            blueprint_ia
+        )
         
         cursor.execute(sql, valores)
         conexion.commit()
@@ -96,11 +87,7 @@ async def procesar_cuestionario(datos: Lead):
         cursor.close()
         conexion.close()
         
-        return {
-            "status": "success", 
-            "message": f"Análisis de producción listo para {datos.representante}",
-            "blueprint": blueprint_ia
-        }
+        return {"status": "success", "blueprint": blueprint_ia}
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
