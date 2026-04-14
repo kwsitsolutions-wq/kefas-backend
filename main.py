@@ -5,55 +5,76 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 
-app = FastAPI(title="API Kefas Digital")
+# 1. Configuración de la API para Arcano Kefas
+app = FastAPI(title="Kefas Design Architect - Sistema de Producción")
 
-# CORS - Autorizamos tu página de Lovable
+# 2. Permisos CORS para conectar con Lovable
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://kefas-digital-glow.lovable.app", "*"], 
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Estructura de los datos
+# 3. Estructura de datos que Lovable debe enviar
 class Lead(BaseModel):
-    nombre: str
-    empresa: str
+    nombre_empresa: str
+    representante: str
+    sector: str
+    whatsapp: str
     email: str
-    mensaje_proyecto: str
-    es_rebuilding: bool
+    vision_proyecto: str
+    links_cliente: str = ""
 
 @app.post("/procesar-cuestionario")
 async def procesar_cuestionario(datos: Lead):
-    if datos.es_rebuilding:
-        return {
-            "status": "rechazado", 
-            "mensaje": "Por el momento en Kefas Digital nos enfocamos exclusivamente en estructuración web de alta gama e integración de IA desde cero. No trabajamos sobre código de terceros."
-        }
-        
     try:
-        # 1. Análisis con Inteligencia Artificial
+        # 4. Conexión con Gemini (El Cerebro de Diseño)
         client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
         
+        # EL PROMPT MAESTRO: Genera la comparativa y los prompts de imagen
         prompt = f"""
-        Eres el consultor analítico de 'Kefas Digital', la agencia derivada de la marca Arcano Kefas. Nuestro enfoque es estrictamente el diseño de alta gama y la automatización con IA.
-        Evalúa a este prospecto de forma directa y profesional:
-        - Nombre: {datos.nombre}
-        - Empresa: {datos.empresa}
-        - Email: {datos.email}
-        - Visión: {datos.mensaje_proyecto}
+        Actúa como Director de Arte Senior y Estratega de Diseño Web de 'Kefas Digital'. 
+        Tu objetivo es generar un INFORME DE PRODUCCIÓN INTERNO para Pedro (Dueño de la Agencia). 
+        Este informe es confidencial y servirá para crear la propuesta visual.
         
-        Redacta un análisis interno breve sobre la viabilidad de este cliente y genera un borrador de correo confirmando que entregaremos una propuesta en 48 horas.
+        DATOS DEL PROYECTO:
+        - EMPRESA: {datos.nombre_empresa}
+        - REPRESENTANTE: {datos.representante}
+        - SECTOR: {datos.sector}
+        - VISIÓN DEL CLIENTE: {datos.vision_proyecto}
+        - REFERENCIAS QUE LE GUSTAN AL CLIENTE: {datos.links_cliente}
+
+        ENTREGA ESTA ESTRUCTURA DE PRODUCCIÓN:
+
+        1. ANÁLISIS ESTRATÉGICO: 
+           Analiza los links del cliente ({datos.links_cliente}). Identifica qué elementos estéticos le atraen y cómo podemos elevar esa idea usando nuestros estándares de alta gama.
+
+        2. FICHA TÉCNICA (BLUEPRINT): 
+           - Concepto visual sugerido.
+           - Paleta de Colores HEX (3 códigos principales).
+           - Tipografías recomendadas.
+           - Estructura de navegación para los programadores.
+
+        3. GENERADOR DE PROMPTS PARA IMÁGENES (MIDJOURNEY/DALL-E):
+           Crea 2 Prompts detallados en INGLÉS para que Pedro genere mockups visuales. Estos deben permitirle comparar la visión del cliente con las plantillas internas de la agencia:
+           - PROMPT A (Evolución Directa): Lleva la visión de '{datos.vision_proyecto}' a un nivel ultra-profesional y moderno.
+           - PROMPT B (Vanguardia Kefas): Un diseño disruptivo y sofisticado basado en el sector {datos.sector}, con iluminación cinematográfica y UI de última generación.
+
+        4. LINKS DE BENCHMARKING: 
+           Proporciona 2 links de sitios web reales (Awwwards/Behance) que representen el 'Nivel 10' de diseño para este sector.
+
+        Usa un tono técnico, estratégico y directo.
         """
         
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.0-flash',
             contents=prompt
         )
-        analisis_generado = response.text
+        blueprint_ia = response.text
         
-        # 2. Guardado en la Base de Datos de Hostinger
+        # 5. Guardado en la Memoria (Base de Datos Hostinger)
         conexion = mysql.connector.connect(
             host=os.environ.get("DB_HOST"),
             user="u365762194_pedro_admin",
@@ -62,8 +83,12 @@ async def procesar_cuestionario(datos: Lead):
         )
         
         cursor = conexion.cursor()
+        
+        # Consolidamos metadatos de contacto para tu control en la base de datos
+        detalles_contacto = f"Rep: {datos.representante} | WA: {datos.whatsapp} | Visión: {datos.vision_proyecto} | Links: {datos.links_cliente}"
+        
         sql = "INSERT INTO prospectos (nombre, empresa, email, mensaje, analisis_ia) VALUES (%s, %s, %s, %s, %s)"
-        valores = (datos.nombre, datos.empresa, datos.email, datos.mensaje_proyecto, analisis_generado)
+        valores = (datos.nombre_empresa, datos.sector, datos.email, detalles_contacto, blueprint_ia)
         
         cursor.execute(sql, valores)
         conexion.commit()
@@ -72,9 +97,9 @@ async def procesar_cuestionario(datos: Lead):
         conexion.close()
         
         return {
-            "status": "aprobado", 
-            "mensaje": "¡Tu visión está en camino! Hemos recibido tus datos y en menos de 48 horas recibirás nuestra propuesta en tu correo.",
-            "analisis": analisis_generado
+            "status": "success", 
+            "message": f"Análisis de producción listo para {datos.representante}",
+            "blueprint": blueprint_ia
         }
         
     except Exception as e:
