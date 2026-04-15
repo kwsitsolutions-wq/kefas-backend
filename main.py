@@ -66,9 +66,9 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         Referencias: {datos.links_cliente}
         """
         
-        # Modelo estable para plan de pago
+     # Cambiamos el nombre al formato que acepta la API v1 de producción
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+           model='gemini-1.5-flash-latest', # <--- Asegúrate de que NO tenga 'models/' delante
             contents=prompt
         )
         blueprint_ia = response.text
