@@ -64,7 +64,7 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         
         # Usamos el nombre de modelo más estable de Google
         response = client.models.generate_content(
-            model="gemini-2.5-flash-preview-04-17"
+            model='gemini-2.5-flash-preview-04-17'
             contents=prompt
         )
         blueprint_ia = response.text
