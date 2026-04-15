@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 
-# --- ARCANO KEFAS: ENGINE v2.6 (PAID PRODUCTION) ---
+# --- ARCANO KEFAS: ENGINE v3.1 (STABLE PRODUCTION) ---
 app = FastAPI(title="Kefas High-End Engine")
 
 app.add_middleware(
@@ -17,7 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Diccionario de seguridad por IP (Bloqueo de 2 minutos)
+# Diccionario de seguridad por IP (Bloqueo de 2 minutos para proteger tus $10)
 last_request_time = {}
 
 class Lead(BaseModel):
@@ -31,7 +31,7 @@ class Lead(BaseModel):
 
 @app.get("/")
 async def root():
-    return {"status": "Arcano Kefas Engine is Running"}
+    return {"status": "Arcano Kefas Engine is Running", "mode": "Production"}
 
 @app.post("/procesar-cuestionario")
 async def procesar_cuestionario(datos: Lead, request: Request):
@@ -50,25 +50,21 @@ async def procesar_cuestionario(datos: Lead, request: Request):
     
     last_request_time[client_ip] = current_time
 
-    # --- 2. MOTOR DE INTELIGENCIA ARTIFICIAL (PAID TIER) ---
-    blueprint_ia = "PENDIENTE: Revisión manual requerida por alta demanda."
+    # --- 2. MOTOR DE INTELIGENCIA ARTIFICIAL (AUTO-DETECCION DE PAGO) ---
+    blueprint_ia = "PENDIENTE: Revisión manual requerida (Fallo de conexión IA)."
     
     try:
-        # Forzamos la versión v1 de producción para usar tus $10 USD
-        client = genai.Client(
-            api_key=os.environ.get("GEMINI_API_KEY"),
-            http_options={'api_version': 'v1'}
-        )
+        # Inicialización limpia: El SDK detectará tu saldo de $10 automáticamente
+        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
         
         prompt = f"""
         Actúa como Director de Arte Senior. Genera Ficha Técnica y 2 Prompts de Imagen (A y B).
         Empresa: {datos.nombre_empresa}. Sector: {datos.sector}. Visión: {datos.vision_proyecto}.
-        Referencias: {datos.links_cliente}
         """
         
-     # Cambiamos el nombre al formato que acepta la API v1 de producción
+        # Usamos el nombre de modelo más estable de Google
         response = client.models.generate_content(
-           model='gemini-1.5-flash-latest', # <--- Asegúrate de que NO tenga 'models/' delante
+            model='gemini-1.5-flash',
             contents=prompt
         )
         blueprint_ia = response.text
@@ -76,7 +72,7 @@ async def procesar_cuestionario(datos: Lead, request: Request):
     except Exception as e:
         print(f"Log: Fallo en IA (pero guardando datos): {e}")
 
-    # --- 3. PERSISTENCIA EN HOSTINGER ---
+    # --- 3. PERSISTENCIA EN HOSTINGER (TU CRM REAL) ---
     try:
         conexion = mysql.connector.connect(
             host=os.environ.get("DB_HOST"),
@@ -103,6 +99,7 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         
     except Exception as db_e:
         print(f"Log: Fallo en DB: {db_e}")
+        # Si falla la DB, lanzamos error 500 para que Lovable sepa que algo anda mal
         raise HTTPException(status_code=500, detail="Error de conexión con la base de datos.")
 
     return {
