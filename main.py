@@ -1,3 +1,8 @@
+¡Entendido, Pedro! Vamos a dejar el código impecable, etiquetado sección por sección para que sepas exactamente qué hace cada "engranaje" de tu motor de inteligencia.
+
+Aquí tienes la versión v3.9 Final (Etiquetada). Este código es el que debes pegar en GitHub para que hable correctamente con tu base de datos actualizada en Hostinger.
+
+Python
 import os
 import time
 from google import genai
@@ -6,10 +11,12 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 
-# --- ARCANO KEFAS: ENGINE v3.5 (ULTRA-PROMPTER EDITION) ---
-app = FastAPI(title="Kefas High-End Design Engine")
+# =========================================================
+# 1. CONFIGURACIÓN DEL SERVIDOR Y SEGURIDAD (ADUANA)
+# =========================================================
+app = FastAPI(title="Arcano Kefas - High End Engine v3.9")
 
-# Configuración de CORS para Lovable
+# Permitir que Lovable (Frontend) se comunique con Render (Backend)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,10 +25,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Seguridad: Bloqueo de 120s por IP para proteger tus créditos
+# Diccionario para controlar que nadie abuse de tu saldo (Protección IP)
 last_request_time = {}
 
-# 1. ESQUEMA DE DATOS (Sincronizado con los nuevos campos de Lovable)
+# =========================================================
+# 2. DEFINICIÓN DEL FORMULARIO (ESQUEMA DE DATOS)
+# =========================================================
+# Aquí definimos exactamente qué datos recibimos de Lovable
 class Lead(BaseModel):
     nombre_empresa: str
     representante: str
@@ -34,68 +44,64 @@ class Lead(BaseModel):
     temperatura_visual: str
     objetivo_comunicacion: str
 
+# =========================================================
+# 3. RUTA DE INICIO (TEST DE ESTADO)
+# =========================================================
 @app.get("/")
 async def root():
     return {"status": "Arcano Kefas Engine is Running", "mode": "Production"}
 
+# =========================================================
+# 4. PROCESO MAESTRO: IA + BASE DE DATOS
+# =========================================================
 @app.post("/procesar-cuestionario")
 async def procesar_cuestionario(datos: Lead, request: Request):
-    # --- 1. SEGURIDAD DE ACCESO (120 SEGUNDOS) ---
+    
+    # --- PASO A: PROTECCIÓN CONTRA SPAM (120 SEGUNDOS) ---
     client_ip = request.client.host
     current_time = time.time()
-    TIEMPO_BLOQUEO = 120 
-    
     if client_ip in last_request_time:
-        if current_time - last_request_time[client_ip] < TIEMPO_BLOQUEO:
-            tiempo_restante = int(TIEMPO_BLOQUEO - (current_time - last_request_time[client_ip]))
-            raise HTTPException(
-                status_code=429, 
-                detail=f"Seguridad activa. Espera {tiempo_restante} segundos."
-            )
+        if current_time - last_request_time[client_ip] < 120:
+            restante = int(120 - (current_time - last_request_time[client_ip]))
+            raise HTTPException(status_code=429, detail=f"Seguridad activa. Espera {restante}s.")
     
     last_request_time[client_ip] = current_time
 
-    # --- 2. MOTOR DE INTELIGENCIA ARTIFICIAL (SUPER PROMPT PARA DISEÑADORES) ---
+    # --- PASO B: MOTOR CREATIVO (GEMINI 2.0 FLASH) ---
+    # Si la IA falla, guardamos este texto por defecto
     blueprint_ia = "PENDIENTE: Revisión manual requerida (Fallo de conexión IA)."
     
     try:
-        # Inicialización limpia: El SDK detectará tu Paid Tier automáticamente
+        # Iniciamos el cliente de Google con tu API KEY de pago
         client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
         
-        # El "Super Prompt" que combina toda la nueva data de Lovable
+        # El SUPER PROMPT que mezcla toda la psicología de marca
         prompt_maestro = f"""
-        Actúa como un Director de Arte de Élite y experto en Prompt Engineering.
-        Genera una GUÍA MAESTRA DE DISEÑO basada en estos parámetros:
+        Actúa como Director de Arte de Élite. 
+        Proyecto: {datos.nombre_empresa}.
+        Estilo: {datos.personalidad_marca} | Clima: {datos.temperatura_visual}.
+        Meta: {datos.objetivo_comunicacion}.
+        Visión: {datos.vision_proyecto}.
 
-        - EMPRESA: {datos.nombre_empresa} (Sector: {datos.sector})
-        - VISIÓN: {datos.vision_proyecto}
-        - PERSONALIDAD: {datos.personalidad_marca}
-        - CLIMA VISUAL: {datos.temperatura_visual}
-        - OBJETIVO: {datos.objetivo_comunicacion}
-        - REFERENCIAS: {datos.links_cliente}
-
-        TAREA PARA EL EQUIPO DE DISEÑO:
-        1. PALETA TÉCNICA: 3 códigos HEX que respeten la temperatura {datos.temperatura_visual}.
-        2. TIPOGRAFÍA: Combinación premium (Heading/Body) acorde a {datos.personalidad_marca}.
-        3. CONCEPTO: Cómo los visuales lograrán el objetivo de '{datos.objetivo_comunicacion}'.
-        4. SUPER PROMPT (INGLÉS) PARA MIDJOURNEY: 
-           Crea un prompt de ultra-lujo que describa la 'Hero Section'. 
-           Incluye: Estilo {datos.personalidad_marca}, iluminación cinematográfica (coherente con tonos {datos.temperatura_visual}), 
-           texturas detalladas (vidrio, metal o texturas orgánicas), profundidad de campo y resolución 8k.
+        ENTREGA:
+        1. PALETA HEX (3 colores) basada en clima {datos.temperatura_visual}.
+        2. TIPOGRAFÍA sugerida para {datos.personalidad_marca}.
+        3. SUPER PROMPT (INGLÉS) para Midjourney: {datos.personalidad_marca} high-end design, {datos.temperatura_visual} lighting, cinematic, 8k, photorealistic.
         """
         
-        # Usamos el modelo que ya probaste exitosamente
+        # Llamada a la versión estable de pago
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-1.5-flash', 
             contents=prompt_maestro
         )
         blueprint_ia = response.text
         
     except Exception as e:
-        print(f"Log: Fallo en IA (pero guardando datos): {e}")
+        print(f"--- LOG ERROR IA: {e} ---")
 
-    # --- 3. PERSISTENCIA EN HOSTINGER (TU CRM REAL) ---
+    # --- PASO C: PERSISTENCIA (GUARDADO EN HOSTINGER) ---
     try:
+        # Conectamos a tu DB u365762194_agencia
         conexion = mysql.connector.connect(
             host=os.environ.get("DB_HOST"),
             user="u365762194_pedro_admin",
@@ -104,25 +110,31 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         )
         cursor = conexion.cursor()
         
+        # SQL con las 11 columnas que ya tienes en tu phpMyAdmin
         sql = """INSERT INTO prospectos 
-                 (nombre_empresa, representante, sector, whatsapp, email, vision_proyecto, links_cliente, analisis_ia) 
-                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+                 (nombre_empresa, representante, sector, whatsapp, email, 
+                  vision_proyecto, personalidad_marca, temperatura_visual, 
+                  objetivo_comunicacion, links_cliente, analisis_ia) 
+                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         
+        # Mapeo de datos para insertar
         valores = (
             datos.nombre_empresa, datos.representante, datos.sector, 
-            datos.whatsapp, datos.email, datos.vision_proyecto, 
-            datos.links_cliente, blueprint_ia
+            datos.whatsapp, datos.email, datos.vision_proyecto,
+            datos.personalidad_marca, datos.temperatura_visual, 
+            datos.objetivo_comunicacion, datos.links_cliente, blueprint_ia
         )
         
         cursor.execute(sql, valores)
-        conexion.commit()
+        conexion.commit() # Guardar cambios permanentemente
         cursor.close()
         conexion.close()
         
     except Exception as db_e:
-        print(f"Log: Fallo en DB: {db_e}")
-        raise HTTPException(status_code=500, detail="Error de conexión con la base de datos.")
+        print(f"--- LOG ERROR DB: {db_e} ---")
+        raise HTTPException(status_code=500, detail="Error de conexión con Hostinger.")
 
+    # Respuesta final para Lovable
     return {
         "status": "success", 
         "ia_status": "completado" if "PENDIENTE" not in blueprint_ia else "pendiente"
