@@ -6,20 +6,22 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 
-# --- ARCANO KEFAS: ENGINE v3.1 (STABLE PRODUCTION) ---
-app = FastAPI(title="Kefas High-End Engine")
+# --- ARCANO KEFAS: ENGINE v3.5 (ULTRA-PROMPTER EDITION) ---
+app = FastAPI(title="Kefas High-End Design Engine")
 
+# Configuración de CORS para Lovable
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Diccionario de seguridad por IP (Bloqueo de 2 minutos para proteger tus $10)
+# Seguridad: Bloqueo de 120s por IP para proteger tus créditos
 last_request_time = {}
 
+# 1. ESQUEMA DE DATOS (Sincronizado con los nuevos campos de Lovable)
 class Lead(BaseModel):
     nombre_empresa: str
     representante: str
@@ -28,6 +30,9 @@ class Lead(BaseModel):
     email: str
     vision_proyecto: str
     links_cliente: str = ""
+    personalidad_marca: str
+    temperatura_visual: str
+    objetivo_comunicacion: str
 
 @app.get("/")
 async def root():
@@ -50,22 +55,39 @@ async def procesar_cuestionario(datos: Lead, request: Request):
     
     last_request_time[client_ip] = current_time
 
-    # --- 2. MOTOR DE INTELIGENCIA ARTIFICIAL (AUTO-DETECCION DE PAGO) ---
+    # --- 2. MOTOR DE INTELIGENCIA ARTIFICIAL (SUPER PROMPT PARA DISEÑADORES) ---
     blueprint_ia = "PENDIENTE: Revisión manual requerida (Fallo de conexión IA)."
     
     try:
-        # Inicialización limpia: El SDK detectará tu saldo de $10 automáticamente
+        # Inicialización limpia: El SDK detectará tu Paid Tier automáticamente
         client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
         
-        prompt = f"""
-        Actúa como Director de Arte Senior. Genera Ficha Técnica y 2 Prompts de Imagen (A y B).
-        Empresa: {datos.nombre_empresa}. Sector: {datos.sector}. Visión: {datos.vision_proyecto}.
+        # El "Super Prompt" que combina toda la nueva data de Lovable
+        prompt_maestro = f"""
+        Actúa como un Director de Arte de Élite y experto en Prompt Engineering.
+        Genera una GUÍA MAESTRA DE DISEÑO basada en estos parámetros:
+
+        - EMPRESA: {datos.nombre_empresa} (Sector: {datos.sector})
+        - VISIÓN: {datos.vision_proyecto}
+        - PERSONALIDAD: {datos.personalidad_marca}
+        - CLIMA VISUAL: {datos.temperatura_visual}
+        - OBJETIVO: {datos.objetivo_comunicacion}
+        - REFERENCIAS: {datos.links_cliente}
+
+        TAREA PARA EL EQUIPO DE DISEÑO:
+        1. PALETA TÉCNICA: 3 códigos HEX que respeten la temperatura {datos.temperatura_visual}.
+        2. TIPOGRAFÍA: Combinación premium (Heading/Body) acorde a {datos.personalidad_marca}.
+        3. CONCEPTO: Cómo los visuales lograrán el objetivo de '{datos.objetivo_comunicacion}'.
+        4. SUPER PROMPT (INGLÉS) PARA MIDJOURNEY: 
+           Crea un prompt de ultra-lujo que describa la 'Hero Section'. 
+           Incluye: Estilo {datos.personalidad_marca}, iluminación cinematográfica (coherente con tonos {datos.temperatura_visual}), 
+           texturas detalladas (vidrio, metal o texturas orgánicas), profundidad de campo y resolución 8k.
         """
         
-        # Usamos el nombre de modelo más estable de Google
+        # Usamos el modelo que ya probaste exitosamente
         response = client.models.generate_content(
             model='gemini-2.5-flash',
-            contents=prompt
+            contents=prompt_maestro
         )
         blueprint_ia = response.text
         
@@ -99,7 +121,6 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         
     except Exception as db_e:
         print(f"Log: Fallo en DB: {db_e}")
-        # Si falla la DB, lanzamos error 500 para que Lovable sepa que algo anda mal
         raise HTTPException(status_code=500, detail="Error de conexión con la base de datos.")
 
     return {
