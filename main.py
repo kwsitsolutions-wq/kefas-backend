@@ -1,4 +1,4 @@
-import os
+mport os
 import time
 from google import genai
 from fastapi import FastAPI, HTTPException, Request
@@ -7,11 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 
 # =========================================================
-# 1. CONFIGURACIÓN DEL SERVIDOR Y SEGURIDAD (ADUANA)
+# 1. CONFIGURACIÓN DEL MOTOR ARCANO KEFAS v4.0
 # =========================================================
-app = FastAPI(title="Arcano Kefas - High End Engine v3.9")
+app = FastAPI(title="Arcano Kefas - Resilient Engine v4.0")
 
-# Permitir que Lovable (Frontend) se comunique con Render (Backend)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,13 +19,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Diccionario para controlar que nadie abuse de tu saldo (Protección IP)
+# Protección IP para cuidar tus créditos de pago
 last_request_time = {}
 
-# =========================================================
-# 2. DEFINICIÓN DEL FORMULARIO (ESQUEMA DE DATOS)
-# =========================================================
-# Aquí definimos exactamente qué datos recibimos de Lovable
+# Esquema de datos sincronizado con Lovable y Hostinger
 class Lead(BaseModel):
     nombre_empresa: str
     representante: str
@@ -39,64 +35,68 @@ class Lead(BaseModel):
     temperatura_visual: str
     objetivo_comunicacion: str
 
-# =========================================================
-# 3. RUTA DE INICIO (TEST DE ESTADO)
-# =========================================================
 @app.get("/")
 async def root():
-    return {"status": "Arcano Kefas Engine is Running", "mode": "Production"}
+    return {"status": "Arcano Kefas Engine is Online", "tier": "Paid"}
 
 # =========================================================
-# 4. PROCESO MAESTRO: IA + BASE DE DATOS
+# 2. PROCESAMIENTO CON REINTENTOS (ANTI-SATURACIÓN)
 # =========================================================
 @app.post("/procesar-cuestionario")
 async def procesar_cuestionario(datos: Lead, request: Request):
     
-    # --- PASO A: PROTECCIÓN CONTRA SPAM (120 SEGUNDOS) ---
+    # --- SEGURIDAD: Límite de 120s ---
     client_ip = request.client.host
     current_time = time.time()
     if client_ip in last_request_time:
         if current_time - last_request_time[client_ip] < 120:
             restante = int(120 - (current_time - last_request_time[client_ip]))
-            raise HTTPException(status_code=429, detail=f"Seguridad activa. Espera {restante}s.")
-    
+            raise HTTPException(status_code=429, detail=f"Espera {restante}s.")
     last_request_time[client_ip] = current_time
 
-    # --- PASO B: MOTOR CREATIVO (GEMINI 2.0 FLASH) ---
-    # Si la IA falla, guardamos este texto por defecto
-    blueprint_ia = "PENDIENTE: Revisión manual requerida (Fallo de conexión IA)."
+    # --- MOTOR DE IA CON SISTEMA DE PERSISTENCIA ---
+    blueprint_ia = "PENDIENTE: IA ocupada tras 3 intentos. Revisar manualmente."
     
-    try:
-        # Iniciamos el cliente de Google con tu API KEY de pago
-        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-        
-        # El SUPER PROMPT que mezcla toda la psicología de marca
-        prompt_maestro = f"""
-        Actúa como Director de Arte de Élite. 
-        Proyecto: {datos.nombre_empresa}.
-        Estilo: {datos.personalidad_marca} | Clima: {datos.temperatura_visual}.
-        Meta: {datos.objetivo_comunicacion}.
-        Visión: {datos.vision_proyecto}.
+    # Intentamos 3 veces en caso de error 503 (Servidor ocupado)
+    for intento in range(3):
+        try:
+            client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+            
+            prompt_maestro = f"""
+            Actúa como Director de Arte Senior. 
+            Genera una Guía Maestra para: {datos.nombre_empresa} ({datos.sector}).
+            
+            PARÁMETROS PSICOLÓGICOS:
+            - Estilo: {datos.personalidad_marca}
+            - Temperatura: {datos.temperatura_visual}
+            - Meta: {datos.objetivo_comunicacion}
+            - Visión: {datos.vision_proyecto}
 
-        ENTREGA:
-        1. PALETA HEX (3 colores) basada en clima {datos.temperatura_visual}.
-        2. TIPOGRAFÍA sugerida para {datos.personalidad_marca}.
-        3. SUPER PROMPT (INGLÉS) para Midjourney: {datos.personalidad_marca} high-end design, {datos.temperatura_visual} lighting, cinematic, 8k, photorealistic.
-        """
-        
-        # Llamada a la versión estable de pago
-        response = client.models.generate_content(
-            model='gemini-2.5-flash', 
-            contents=prompt_maestro
-        )
-        blueprint_ia = response.text
-        
-    except Exception as e:
-        print(f"--- LOG ERROR IA: {e} ---")
+            ENTREGA:
+            1. PALETA HEX: 3 colores según {datos.temperatura_visual}.
+            2. TIPOGRAFÍA: Pareja ideal para {datos.personalidad_marca}.
+            3. SUPER PROMPT (INGLÉS): Midjourney prompt con iluminación cinematográfica, 8k y estilo {datos.personalidad_marca}.
+            """
+            
+            response = client.models.generate_content(
+                model='gemini-1.5-flash', 
+                contents=prompt_maestro
+            )
+            blueprint_ia = response.text
+            break  # Éxito: salimos del bucle de reintentos
+            
+        except Exception as e:
+            if "503" in str(e):
+                print(f"Intento {intento+1} fallido (503), reintentando en 3s...")
+                time.sleep(3) # Pausa estratégica
+            else:
+                print(f"Error crítico IA: {e}")
+                break
 
-    # --- PASO C: PERSISTENCIA (GUARDADO EN HOSTINGER) ---
+    # =========================================================
+    # 3. GUARDADO EN BASE DE DATOS HOSTINGER
+    # =========================================================
     try:
-        # Conectamos a tu DB u365762194_agencia
         conexion = mysql.connector.connect(
             host=os.environ.get("DB_HOST"),
             user="u365762194_pedro_admin",
@@ -105,14 +105,12 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         )
         cursor = conexion.cursor()
         
-        # SQL con las 11 columnas que ya tienes en tu phpMyAdmin
         sql = """INSERT INTO prospectos 
                  (nombre_empresa, representante, sector, whatsapp, email, 
                   vision_proyecto, personalidad_marca, temperatura_visual, 
                   objetivo_comunicacion, links_cliente, analisis_ia) 
                  VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         
-        # Mapeo de datos para insertar
         valores = (
             datos.nombre_empresa, datos.representante, datos.sector, 
             datos.whatsapp, datos.email, datos.vision_proyecto,
@@ -121,16 +119,15 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         )
         
         cursor.execute(sql, valores)
-        conexion.commit() # Guardar cambios permanentemente
+        conexion.commit()
         cursor.close()
         conexion.close()
         
     except Exception as db_e:
-        print(f"--- LOG ERROR DB: {db_e} ---")
-        raise HTTPException(status_code=500, detail="Error de conexión con Hostinger.")
+        print(f"Error DB Hostinger: {db_e}")
+        raise HTTPException(status_code=500, detail="Error de conexión con la base de datos.")
 
-    # Respuesta final para Lovable
     return {
         "status": "success", 
-        "ia_status": "completado" if "PENDIENTE" not in blueprint_ia else "pendiente"
+        "ia_status": "completado" if "Revisar" not in blueprint_ia else "reintento_fallido"
     }
