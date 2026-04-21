@@ -6,9 +6,6 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 
-# =========================================================
-# 1. CONFIGURACIÓN DEL MOTOR ARCANO KEFAS v4.0
-# =========================================================
 app = FastAPI(title="Arcano Kefas - Resilient Engine v4.0")
 
 app.add_middleware(
@@ -19,10 +16,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Protección IP para cuidar tus créditos de pago
 last_request_time = {}
 
-# Esquema de datos sincronizado con Lovable y Hostinger
 class Lead(BaseModel):
     nombre_empresa: str
     representante: str
@@ -39,9 +34,6 @@ class Lead(BaseModel):
 async def root():
     return {"status": "Arcano Kefas Engine is Online", "tier": "Paid"}
 
-# =========================================================
-# 2. PROCESAMIENTO CON REINTENTOS (ANTI-SATURACIÓN)
-# =========================================================
 @app.post("/procesar-cuestionario")
 async def procesar_cuestionario(datos: Lead, request: Request):
     
@@ -54,47 +46,42 @@ async def procesar_cuestionario(datos: Lead, request: Request):
             raise HTTPException(status_code=429, detail=f"Espera {restante}s.")
     last_request_time[client_ip] = current_time
 
-    # --- MOTOR DE IA CON SISTEMA DE PERSISTENCIA ---
-    blueprint_ia = "PENDIENTE: IA ocupada tras 3 intentos. Revisar manualmente."
-    
-    # Intentamos 3 veces en caso de error 503 (Servidor ocupado)
-    for intento in range(3):
-        try:
-            client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-            
-            prompt_maestro = f"""
-            Actúa como Director de Arte Senior. 
-            Genera una Guía Maestra para: {datos.nombre_empresa} ({datos.sector}).
-            
-            PARÁMETROS PSICOLÓGICOS:
-            - Estilo: {datos.personalidad_marca}
-            - Temperatura: {datos.temperatura_visual}
-            - Meta: {datos.objetivo_comunicacion}
-            - Visión: {datos.vision_proyecto}
+    # --- GEMINI: UN INTENTO, ERROR VISIBLE, NO BLOQUEA EL GUARDADO ---
+    blueprint_ia = "PENDIENTE: Error en IA. Revisar manualmente."
+    error_ia = None
 
-            ENTREGA:
-            1. PALETA HEX: 3 colores según {datos.temperatura_visual}.
-            2. TIPOGRAFÍA: Pareja ideal para {datos.personalidad_marca}.
-            3. SUPER PROMPT (INGLÉS): Midjourney prompt con iluminación cinematográfica, 8k y estilo {datos.personalidad_marca}.
-            """
-            
-            response = client.models.generate_content(
-                model='gemini-2.5-flash', 
-                contents=prompt_maestro
-            )
-            blueprint_ia = response.text
-            break  # Éxito: salimos del bucle de reintentos
-            
-        except Exception as e:
-            if "503" in str(e):
-                print(f"Intento {intento+1} fallido (503), reintentando en 3s...")
-                time.sleep(3) # Pausa estratégica
-            else:
-                print(f"Error crítico IA: {e}")
-                break
+    try:
+        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+        
+        prompt_maestro = f"""
+        Actúa como Director de Arte Senior. 
+        Genera una Guía Maestra para: {datos.nombre_empresa} ({datos.sector}).
+        
+        PARÁMETROS PSICOLÓGICOS:
+        - Estilo: {datos.personalidad_marca}
+        - Temperatura: {datos.temperatura_visual}
+        - Meta: {datos.objetivo_comunicacion}
+        - Visión: {datos.vision_proyecto}
+
+        ENTREGA:
+        1. PALETA HEX: 3 colores según {datos.temperatura_visual}.
+        2. TIPOGRAFÍA: Pareja ideal para {datos.personalidad_marca}.
+        3. SUPER PROMPT (INGLÉS): Midjourney prompt con iluminación cinematográfica, 8k y estilo {datos.personalidad_marca}.
+        """
+        
+        response = client.models.generate_content(
+            model='gemini-2.5-flash', 
+            contents=prompt_maestro
+        )
+        blueprint_ia = response.text
+
+    except Exception as e:
+        # ❌ Captura el error pero CONTINÚA para guardar en BD
+        error_ia = f"ERROR GEMINI: {type(e).__name__} — {str(e)}"
+        print(error_ia)
 
     # =========================================================
-    # 3. GUARDADO EN BASE DE DATOS HOSTINGER
+    # GUARDADO EN BASE DE DATOS HOSTINGER (siempre se ejecuta)
     # =========================================================
     try:
         conexion = mysql.connector.connect(
@@ -129,5 +116,6 @@ async def procesar_cuestionario(datos: Lead, request: Request):
 
     return {
         "status": "success", 
-        "ia_status": "completado" if "Revisar" not in blueprint_ia else "reintento_fallido"
+        "ia_status": "completado" if error_ia is None else "fallido",
+        "ia_error": error_ia  # None si todo fue bien, mensaje si falló
     }
