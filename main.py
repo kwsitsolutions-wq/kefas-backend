@@ -1,8 +1,3 @@
-¡Entendido, Pedro! Vamos a dejar el código impecable, etiquetado sección por sección para que sepas exactamente qué hace cada "engranaje" de tu motor de inteligencia.
-
-Aquí tienes la versión v3.9 Final (Etiquetada). Este código es el que debes pegar en GitHub para que hable correctamente con tu base de datos actualizada en Hostinger.
-
-Python
 import os
 import time
 from google import genai
