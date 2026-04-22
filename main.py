@@ -91,7 +91,7 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         """
         
         # Usando tu modelo de preferencia
-           response = client.models.generate_content(
+        response = client.models.generate_content(
             model='gemini-3.1-pro-preview',
             contents=prompt_maestro
         )
