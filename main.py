@@ -61,38 +61,36 @@ async def procesar_cuestionario(datos: Lead, request: Request):
     try:
         client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
         
-        # EL SUPER PROMPT: Genera 5 propuestas completas con nombre y CTA
+        # EL SUPER PROMPT PROFESIONAL: 
+        # Diseñado para generar una guía visual técnica y 5 variaciones de UI reales.
         prompt_maestro = f"""
-        Actúa como un Director de Arte Senior y Diseñador UX/UI de clase mundial.
-        TU OBJETIVO: Generar el prompt definitivo para crear 5 propuestas visuales de una Landing Page profesional.
+        Actúa como un Director de Arte Senior y Diseñador UX/UI de clase mundial. 
+        Tu objetivo es traducir la visión del cliente en una especificación técnica de diseño web de alta gama.
 
-        DATOS DEL PROYECTO:
-        - Empresa: {datos.nombre_empresa}
-        - Sector: {datos.sector}
-        - Visión: {datos.vision_proyecto}
-        - Estilo: {datos.personalidad_marca}
-        - Clima Visual: {datos.temperatura_visual}
-        - Meta de Conversión: {datos.objetivo_comunicacion}
+        DATOS ESTRATÉGICOS:
+        - Marca: {datos.nombre_empresa} (Sector: {datos.sector})
+        - Visión de Negocio: {datos.vision_proyecto}
+        - Personalidad Visual: {datos.personalidad_marca}
+        - Temperatura Cromática: {datos.temperatura_visual}
+        - Objetivo de Marketing: {datos.objetivo_comunicacion}
 
-        TAREA TÉCNICA (FICHA):
-        1. PALETA HEX: 3 colores premium que respeten la temperatura {datos.temperatura_visual}.
-        2. TIPOGRAFÍA: Combinación de Google Fonts acorde al estilo {datos.personalidad_marca}.
+        TAREA 1: ESPECIFICACIONES TÉCNICAS (FICHA)
+        - Define una paleta de 3 códigos HEX profesionales basados en "{datos.temperatura_visual}".
+        - Sugiere una combinación de tipografías (Headline y Body) que transmita "{datos.personalidad_marca}".
 
-        TAREA CREATIVA (EL PROMPT PARA IMAGEN):
-        Redacta un prompt maestro en INGLÉS para Midjourney/DALL-E que genere 5 variaciones de diseño.
-        El prompt debe exigir:
-        - FORMATO: High-resolution web design screenshot, .png style, 8k.
-        - ELEMENTOS OBLIGATORIOS: 
-            * El nombre "{datos.nombre_empresa}" claramente en el Header/Logo.
-            * Hero Section con un Call to Action (CTA) brillante (ej. "Get Started").
-            * Menú de navegación, layout moderno y estructura de conversión profesional.
-        - ESTILO VISUAL: Fusionar la personalidad "{datos.personalidad_marca}" con iluminación cinematográfica "{datos.temperatura_visual}".
-        - VARIACIONES: Solicita 5 propuestas de layout distintas basadas en: {datos.vision_proyecto}.
+        TAREA 2: PROMPT MAESTRO PARA GENERACIÓN DE IMAGEN (EN INGLÉS)
+        Escribe un prompt detallado para Midjourney/DALL-E que genere una cuadrícula o serie de 5 variaciones de diseño web.
+        El prompt DEBE incluir estos comandos técnicos:
+        - Estilo: "High-end UI/UX web design screenshot, 8k resolution, photorealistic, sharp focus, .png format".
+        - Composición: "Desktop landing page layout, clean navigation header with the logo '{datos.nombre_empresa}', conversion-optimized hero section".
+        - Elementos: "Prominent Call-to-Action buttons (CTA), professional white space, modern grid system".
+        - Iluminación/Textura: "{datos.temperatura_visual} lighting mood, elegant glassmorphism and soft shadows, consistent with a '{datos.personalidad_marca}' aesthetic".
+        - Variaciones: "Show 5 distinct layout explorations (Minimalist, Bold, Corporate, Organic, and Tech-Futuristic) all based on the concept: {datos.vision_proyecto}".
         """
         
-        # Usando tu modelo de preferencia
+        # Usando el modelo de última generación disponible
         response = client.models.generate_content(
-            model='gemini-3.1-pro-preview',
+            model='gemini-2.0-flash', # Actualizado al modelo más estable y rápido
             contents=prompt_maestro
         )
         blueprint_ia = response.text
@@ -133,7 +131,6 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         
     except Exception as db_e:
         print(f"Error DB Hostinger: {db_e}")
-        # Mantenemos el error 500 para notificar al frontend
         raise HTTPException(status_code=500, detail="Error de conexión con la base de datos.")
 
     return {
