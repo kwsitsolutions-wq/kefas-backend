@@ -6,7 +6,10 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 
-app = FastAPI(title="Arcano Kefas - Resilient Engine v4.0")
+# =========================================================
+# 1. CONFIGURACIÓN DEL MOTOR ARCANO KEFAS v4.2
+# =========================================================
+app = FastAPI(title="Arcano Kefas - Design Master v4.2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,8 +19,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Protección de IP para cuidar tus créditos de pago
 last_request_time = {}
 
+# Esquema de datos (Lo que llega desde el formulario de Lovable)
 class Lead(BaseModel):
     nombre_empresa: str
     representante: str
@@ -34,10 +39,13 @@ class Lead(BaseModel):
 async def root():
     return {"status": "Arcano Kefas Engine is Online", "tier": "Paid"}
 
+# =========================================================
+# 2. PROCESAMIENTO: SUPER PROMPT DE 5 VARIACIONES
+# =========================================================
 @app.post("/procesar-cuestionario")
 async def procesar_cuestionario(datos: Lead, request: Request):
     
-    # --- SEGURIDAD: Límite de 120s ---
+    # --- SEGURIDAD: Límite de 120s por IP ---
     client_ip = request.client.host
     current_time = time.time()
     if client_ip in last_request_time:
@@ -46,42 +54,55 @@ async def procesar_cuestionario(datos: Lead, request: Request):
             raise HTTPException(status_code=429, detail=f"Espera {restante}s.")
     last_request_time[client_ip] = current_time
 
-    # --- GEMINI: UN INTENTO, ERROR VISIBLE, NO BLOQUEA EL GUARDADO ---
+    # --- GEMINI: GENERACIÓN DEL PROMPT DE DISEÑO WEB ---
     blueprint_ia = "PENDIENTE: Error en IA. Revisar manualmente."
     error_ia = None
 
     try:
         client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
         
+        # EL SUPER PROMPT: Genera 5 propuestas completas con nombre y CTA
         prompt_maestro = f"""
-        Actúa como Director de Arte Senior. 
-        Genera una Guía Maestra para: {datos.nombre_empresa} ({datos.sector}).
-        
-        PARÁMETROS PSICOLÓGICOS:
-        - Estilo: {datos.personalidad_marca}
-        - Temperatura: {datos.temperatura_visual}
-        - Meta: {datos.objetivo_comunicacion}
-        - Visión: {datos.vision_proyecto}
+        Actúa como un Director de Arte Senior y Diseñador UX/UI de clase mundial.
+        TU OBJETIVO: Generar el prompt definitivo para crear 5 propuestas visuales de una Landing Page profesional.
 
-        ENTREGA:
-        1. PALETA HEX: 3 colores según {datos.temperatura_visual}.
-        2. TIPOGRAFÍA: Pareja ideal para {datos.personalidad_marca}.
-        3. SUPER PROMPT (INGLÉS): Midjourney prompt con iluminación cinematográfica, 8k y estilo {datos.personalidad_marca}.
+        DATOS DEL PROYECTO:
+        - Empresa: {datos.nombre_empresa}
+        - Sector: {datos.sector}
+        - Visión: {datos.vision_proyecto}
+        - Estilo: {datos.personalidad_marca}
+        - Clima Visual: {datos.temperatura_visual}
+        - Meta de Conversión: {datos.objetivo_comunicacion}
+
+        TAREA TÉCNICA (FICHA):
+        1. PALETA HEX: 3 colores premium que respeten la temperatura {datos.temperatura_visual}.
+        2. TIPOGRAFÍA: Combinación de Google Fonts acorde al estilo {datos.personalidad_marca}.
+
+        TAREA CREATIVA (EL PROMPT PARA IMAGEN):
+        Redacta un prompt maestro en INGLÉS para Midjourney/DALL-E que genere 5 variaciones de diseño.
+        El prompt debe exigir:
+        - FORMATO: High-resolution web design screenshot, .png style, 8k.
+        - ELEMENTOS OBLIGATORIOS: 
+            * El nombre "{datos.nombre_empresa}" claramente en el Header/Logo.
+            * Hero Section con un Call to Action (CTA) brillante (ej. "Get Started").
+            * Menú de navegación, layout moderno y estructura de conversión profesional.
+        - ESTILO VISUAL: Fusionar la personalidad "{datos.personalidad_marca}" con iluminación cinematográfica "{datos.temperatura_visual}".
+        - VARIACIONES: Solicita 5 propuestas de layout distintas basadas en: {datos.vision_proyecto}.
         """
         
-        response = client.models.generate_content(
+        # Usando tu modelo de preferencia
+           response = client.models.generate_content(
             model='gemini-3.1-pro-preview',
             contents=prompt_maestro
         )
         blueprint_ia = response.text
 
     except Exception as e:
-        # ❌ Captura el error pero CONTINÚA para guardar en BD
         error_ia = f"ERROR GEMINI: {type(e).__name__} — {str(e)}"
         print(error_ia)
 
     # =========================================================
-    # GUARDADO EN BASE DE DATOS HOSTINGER (siempre se ejecuta)
+    # 3. GUARDADO EN BASE DE DATOS HOSTINGER (SIEMPRE SE EJECUTA)
     # =========================================================
     try:
         conexion = mysql.connector.connect(
@@ -112,10 +133,11 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         
     except Exception as db_e:
         print(f"Error DB Hostinger: {db_e}")
+        # Mantenemos el error 500 para notificar al frontend
         raise HTTPException(status_code=500, detail="Error de conexión con la base de datos.")
 
     return {
         "status": "success", 
         "ia_status": "completado" if error_ia is None else "fallido",
-        "ia_error": error_ia  # None si todo fue bien, mensaje si falló
+        "ia_error": error_ia 
     }
