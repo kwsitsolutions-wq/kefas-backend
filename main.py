@@ -1,15 +1,14 @@
 import os
 import time
-from google import genai
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 
 # =========================================================
-# 1. CONFIGURACIÓN DEL MOTOR ARCANO KEFAS v4.4 (ULTRA-LITE)
+# 1. CONFIGURACIÓN DEL MOTOR ARCANO KEFAS v5.0 (Cero Costos)
 # =========================================================
-app = FastAPI(title="Arcano Kefas - Design Master v4.4 (Ultra-Lite)")
+app = FastAPI(title="Arcano Kefas - Lead Capture Only")
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,8 +18,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Protección IP para evitar spam en tu base de datos
 last_request_time = {}
 
+# Esquema de datos (Sincronizado con Lovable y tu base de datos)
 class Lead(BaseModel):
     nombre_empresa: str
     representante: str
@@ -35,48 +36,28 @@ class Lead(BaseModel):
 
 @app.get("/")
 async def root():
-    return {"status": "Arcano Kefas Engine is Online", "mode": "Ultra-Lite"}
+    return {"status": "Arcano Kefas Backend is Online", "mode": "Capture Only"}
 
 # =========================================================
-# 2. PROCESAMIENTO: GENERACIÓN DE PROMPT PARA 1 IMAGEN
+# 2. CAPTURA Y GUARDADO (SIN GASTAR TOKENS DE IA)
 # =========================================================
 @app.post("/procesar-cuestionario")
 async def procesar_cuestionario(datos: Lead, request: Request):
     
+    # --- SEGURIDAD: Límite de 120s ---
     client_ip = request.client.host
     current_time = time.time()
-    if client_ip in last_request_time and (current_time - last_request_time[client_ip] < 120):
-        raise HTTPException(status_code=429, detail="Espera 120s.")
+    if client_ip in last_request_time:
+        if current_time - last_request_time[client_ip] < 120:
+            restante = int(120 - (current_time - last_request_time[client_ip]))
+            raise HTTPException(status_code=429, detail=f"Espera {restante}s.")
     last_request_time[client_ip] = current_time
 
-    blueprint_ia = "PENDIENTE: Error en IA."
-    error_ia = None
-
-    try:
-        client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-        
-        # PROMPT MINIMALISTA: Una sola imagen de impacto.
-        # Directo al grano para ahorrar tokens y dar un resultado limpio.
-        prompt_maestro = f"""
-        Generate only the English Midjourney prompt for: 
-        A professional high-end desktop web design screenshot for "{datos.nombre_empresa}" ({datos.sector}). 
-        Style: {datos.personalidad_marca}, {datos.temperatura_visual} lighting. 
-        Visible logo, hero section with "Get Started" button, conversion-focused. 
-        Concept: {datos.vision_proyecto}. Photorealistic UI/UX, 8k, .png --ar 16:9
-        """
-        
-        response = client.models.generate_content(
-            model='gemini-3.1-pro-preview',
-            contents=prompt_maestro
-        )
-        blueprint_ia = response.text.strip()
-
-    except Exception as e:
-        error_ia = str(e)
-        print(f"Error IA: {e}")
+    # Llenamos la columna 12 (analisis_ia) con un mensaje indicando que se usa el Gem
+    blueprint_ia = "Análisis delegado al Gem de Arcano."
 
     # =========================================================
-    # 3. GUARDADO EN BASE DE DATOS HOSTINGER
+    # 3. GUARDADO DIRECTO EN BASE DE DATOS HOSTINGER
     # =========================================================
     try:
         conexion = mysql.connector.connect(
@@ -87,6 +68,7 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         )
         cursor = conexion.cursor()
         
+        # Insertamos en las 11 columnas que configuraste
         sql = """INSERT INTO prospectos 
                  (nombre_empresa, representante, sector, whatsapp, email, 
                   vision_proyecto, personalidad_marca, temperatura_visual, 
@@ -106,11 +88,11 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         conexion.close()
         
     except Exception as db_e:
-        print(f"Error DB: {db_e}")
-        raise HTTPException(status_code=500, detail="Error DB")
+        print(f"Error DB Hostinger: {db_e}")
+        raise HTTPException(status_code=500, detail="Error de conexión con la base de datos.")
 
     return {
         "status": "success", 
-        "ia_status": "completado" if error_ia is None else "fallido",
-        "prompt": blueprint_ia
+        "ia_status": "delegado_al_gem",
+        "message": "Lead guardado correctamente."
     }
