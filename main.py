@@ -1,6 +1,7 @@
 import os
 import time
 import smtplib
+from citas import Cita, registrar_cita_soporte  #linea gregada
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -136,3 +137,14 @@ async def procesar_cuestionario(datos: Lead, request: Request):
     except Exception as db_e:
         print(f"Error técnico: {db_e}")
         raise HTTPException(status_code=500, detail="Error interno del servidor.")
+
+
+@app.post("/api/citas")
+async def procesar_cita(datos: Cita):
+    # Esta función vive en tu nuevo archivo citas.py
+    resultado = registrar_cita_soporte(datos)
+    
+    if resultado["status"] == "error":
+        raise HTTPException(status_code=500, detail=resultado["message"])
+        
+    return resultado
