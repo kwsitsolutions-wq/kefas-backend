@@ -1,16 +1,17 @@
 import os
 import time
 import smtplib
-from citas import Cita, registrar_cita_soporte  #linea gregada
+from citas import Cita, registrar_cita_soporte  
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import mysql.connector
+from typing import Optional
 
 # =========================================================
-# 1. CONFIGURACIÓN DEL MOTOR ARCANO KEFAS v5.3 (Privacidad Total)
+# 1. CONFIGURACIÓN DEL MOTOR ARCANO KEFAS v5.4
 # =========================================================
 app = FastAPI(title="Arcano Kefas - Lead Management")
 
@@ -35,14 +36,17 @@ class Lead(BaseModel):
     personalidad_marca: str
     temperatura_visual: str
     objetivo_comunicacion: str
+    # NUEVOS CAMPOS AGREGADOS:
+    origen_lead: Optional[str] = "Directo"
+    codigo_asesor: Optional[str] = None
 
-# --- FUNCIÓN DE NOTIFICACIÓN POR EMAIL (Privada) ---
+# --- FUNCIÓN DE NOTIFICACIÓN POR EMAIL ---
 def enviar_notificacion_kefas(datos: Lead):
     email_usuario = os.environ.get("EMAIL_USER")
     email_password = os.environ.get("EMAIL_PASS")
 
     if not email_usuario or not email_password:
-        print("⚠️ Error: Variables de email no configuradas en Render.")
+        print("⚠️ Error: Variables de email no configuradas.")
         return
 
     mensaje = MIMEMultipart()
@@ -61,6 +65,11 @@ def enviar_notificacion_kefas(datos: Lead):
     Email: {datos.email}
     Sector/Nicho: {datos.sector}
     
+    RASTREO DE VENTA:
+    -------------------------------------------
+    Origen del Lead: {datos.origen_lead}
+    Código de Asesor: {datos.codigo_asesor if datos.codigo_asesor else "N/A"}
+    
     ESTRATEGIA DEL PROYECTO:
     -------------------------------------------
     Visión del Proyecto: 
@@ -69,10 +78,10 @@ def enviar_notificacion_kefas(datos: Lead):
     Personalidad de Marca: {datos.personalidad_marca}
     Temperatura Visual: {datos.temperatura_visual}
     Objetivo de Comunicación (CTA): {datos.objetivo_comunicacion}
-    Link de Referencia/Inspiración: {datos.links_cliente}
+    Link de Referencia: {datos.links_cliente}
     
     -------------------------------------------
-    Nota: Los datos también han sido guardados en la base de datos de Hostinger.
+    Nota: Los datos también han sido guardados en la tabla 'prospectos'.
     """
     mensaje.attach(MIMEText(cuerpo, "plain"))
 
@@ -86,17 +95,16 @@ def enviar_notificacion_kefas(datos: Lead):
 
 @app.get("/")
 async def root():
-    return {"status": "Arcano Kefas Backend Online", "mode": "Private Notification Mode"}
+    return {"status": "Arcano Kefas Backend Online", "mode": "Private Lead & Referral Mode"}
 
 # =========================================================
-# 2. RUTA DE CAPTURA (Única ruta activa)
+# 2. RUTA DE CAPTURA (PROCESAR CUESTIONARIO)
 # =========================================================
 @app.post("/procesar-cuestionario")
 async def procesar_cuestionario(datos: Lead, request: Request):
     client_ip = request.client.host
     current_time = time.time()
     
-    # Anti-Spam (120 segundos entre envíos por IP)
     if client_ip in last_request_time:
         if current_time - last_request_time[client_ip] < 120:
             raise HTTPException(status_code=429, detail="Espera un momento entre envíos.")
@@ -111,17 +119,21 @@ async def procesar_cuestionario(datos: Lead, request: Request):
             database="u365762194_agencia"
         )
         cursor = conexion.cursor()
+        
+        # SQL ACTUALIZADO CON LAS NUEVAS COLUMNAS
         sql = """INSERT INTO prospectos 
-                 (nombre_empresa, representante, sector, whatsapp, email, 
-                  vision_proyecto, personalidad_marca, temperatura_visual, 
-                  objetivo_comunicacion, links_cliente, analisis_ia) 
-                  VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente de análisis')"""
+                  (nombre_empresa, representante, sector, whatsapp, email, 
+                   vision_proyecto, personalidad_marca, temperatura_visual, 
+                   objetivo_comunicacion, links_cliente, analisis_ia,
+                   origen_lead, codigo_asesor) 
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente de análisis', %s, %s)"""
         
         valores = (
             datos.nombre_empresa, datos.representante, datos.sector, 
             datos.whatsapp, datos.email, datos.vision_proyecto,
             datos.personalidad_marca, datos.temperatura_visual, 
-            datos.objetivo_comunicacion, datos.links_cliente
+            datos.objetivo_comunicacion, datos.links_cliente,
+            datos.origen_lead, datos.codigo_asesor
         )
         
         cursor.execute(sql, valores)
@@ -132,19 +144,15 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         # DISPARAR CORREO
         enviar_notificacion_kefas(datos)
 
-        return {"status": "success", "message": "Lead recibido correctamente."}
+        return {"status": "success", "message": "Lead y Referencia registrados correctamente."}
         
     except Exception as db_e:
         print(f"Error técnico: {db_e}")
-        raise HTTPException(status_code=500, detail="Error interno del servidor.")
-
+        raise HTTPException(status_code=500, detail=f"Error interno: {db_e}")
 
 @app.post("/api/citas")
 async def procesar_cita(datos: Cita):
-    # Esta función vive en tu nuevo archivo citas.py
     resultado = registrar_cita_soporte(datos)
-    
     if resultado["status"] == "error":
         raise HTTPException(status_code=500, detail=resultado["message"])
-        
     return resultado
