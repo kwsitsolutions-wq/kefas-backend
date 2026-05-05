@@ -10,6 +10,9 @@ from email.mime.multipart import MIMEMultipart
 import mysql.connector
 from typing import Optional
 
+# =========================================================
+# 1. CONFIGURACIÓN DEL MOTOR ARCANO KEFAS v5.4
+# =========================================================
 app = FastAPI(title="Arcano Kefas - Lead Management")
 
 app.add_middleware(
@@ -36,7 +39,7 @@ class Lead(BaseModel):
     origen_lead: Optional[str] = "Directo"
     codigo_asesor: Optional[str] = None
 
-# --- FUNCIÓN DE NOTIFICACIÓN POR EMAIL ---
+# --- FUNCIÓN DE NOTIFICACIÓN POR EMAIL (CORREGIDA) ---
 def enviar_notificacion_kefas(datos: Lead):
     email_usuario = os.environ.get("EMAIL_USER")
     email_password = os.environ.get("EMAIL_PASS")
@@ -80,8 +83,9 @@ def enviar_notificacion_kefas(datos: Lead):
     Nota: Los datos también han sido guardados en la tabla 'prospectos'.
     """
     mensaje.attach(MIMEText(cuerpo, "plain"))
-try:
-        # Cambiamos al puerto 587 con STARTTLS para que Render no bloquee la conexión
+
+    try:
+        # Metido dentro de la función con sus 4 espacios de sangría obligatorios
         with smtplib.SMTP("smtp.gmail.com", 587) as servidor:
             servidor.ehlo()
             servidor.starttls()  # Activa el cifrado seguro
@@ -97,6 +101,9 @@ async def root():
     return {"status": "Arcano Kefas Backend Online", "mode": "Private Lead & Referral Mode"}
 
 
+# =========================================================
+# 2. RUTA DE CAPTURA (PROCESAR CUESTIONARIO)
+# =========================================================
 @app.post("/procesar-cuestionario")
 async def procesar_cuestionario(datos: Lead, request: Request):
     client_ip = request.client.host
