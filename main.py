@@ -86,9 +86,11 @@ def enviar_notificacion_kefas(datos: Lead):
     mensaje.attach(MIMEText(cuerpo, "plain"))
 
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as servidor:
-            servidor.login(email_usuario, email_password)
-            servidor.send_message(mensaje)
+     with smtplib.SMTP("smtp.gmail.com", 587) as servidor:
+    servidor.ehlo()
+    servidor.starttls()
+    servidor.login(email_usuario, email_password)
+    servidor.send_message(mensaje)
         print(f"✅ Notificación enviada con éxito.")
     except Exception as e:
         print(f"❌ Error al enviar notificación: {e}")
