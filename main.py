@@ -143,7 +143,7 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         cursor.close()
         conexion.close()
 
-        enviar_notificacion_kefas(datos)
+      #  enviar_notificacion_kefas(datos)
 
         return {"status": "success", "message": "Lead y Referencia registrados correctamente."}
         
