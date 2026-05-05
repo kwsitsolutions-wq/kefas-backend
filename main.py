@@ -10,9 +10,6 @@ from email.mime.multipart import MIMEMultipart
 import mysql.connector
 from typing import Optional
 
-# =========================================================
-# 1. CONFIGURACIÓN DEL MOTOR ARCANO KEFAS v5.4
-# =========================================================
 app = FastAPI(title="Arcano Kefas - Lead Management")
 
 app.add_middleware(
@@ -36,7 +33,6 @@ class Lead(BaseModel):
     personalidad_marca: str
     temperatura_visual: str
     objetivo_comunicacion: str
-    # NUEVOS CAMPOS AGREGADOS:
     origen_lead: Optional[str] = "Directo"
     codigo_asesor: Optional[str] = None
 
@@ -85,23 +81,20 @@ def enviar_notificacion_kefas(datos: Lead):
     """
     mensaje.attach(MIMEText(cuerpo, "plain"))
 
-    try:
-     with smtplib.SMTP("smtp.gmail.com", 587) as servidor:
-    servidor.ehlo()
-    servidor.starttls()
-    servidor.login(email_usuario, email_password)
-    servidor.send_message(mensaje)
-        print(f"✅ Notificación enviada con éxito.")
+    try:                                                          # ✅ INSIDE the function
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as servidor:
+            servidor.login(email_usuario, email_password)
+            servidor.send_message(mensaje)
+        print("✅ Notificación enviada con éxito.")
     except Exception as e:
         print(f"❌ Error al enviar notificación: {e}")
+
 
 @app.get("/")
 async def root():
     return {"status": "Arcano Kefas Backend Online", "mode": "Private Lead & Referral Mode"}
 
-# =========================================================
-# 2. RUTA DE CAPTURA (PROCESAR CUESTIONARIO)
-# =========================================================
+
 @app.post("/procesar-cuestionario")
 async def procesar_cuestionario(datos: Lead, request: Request):
     client_ip = request.client.host
@@ -113,7 +106,6 @@ async def procesar_cuestionario(datos: Lead, request: Request):
     last_request_time[client_ip] = current_time
 
     try:
-        # Conexión a Hostinger
         conexion = mysql.connector.connect(
             host=os.environ.get("DB_HOST"),
             user="u365762194_pedro_admin",
@@ -122,7 +114,6 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         )
         cursor = conexion.cursor()
         
-        # SQL ACTUALIZADO CON LAS NUEVAS COLUMNAS
         sql = """INSERT INTO prospectos 
                   (nombre_empresa, representante, sector, whatsapp, email, 
                    vision_proyecto, personalidad_marca, temperatura_visual, 
@@ -143,7 +134,6 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         cursor.close()
         conexion.close()
 
-        # DISPARAR CORREO
         enviar_notificacion_kefas(datos)
 
         return {"status": "success", "message": "Lead y Referencia registrados correctamente."}
@@ -151,6 +141,7 @@ async def procesar_cuestionario(datos: Lead, request: Request):
     except Exception as db_e:
         print(f"Error técnico: {db_e}")
         raise HTTPException(status_code=500, detail=f"Error interno: {db_e}")
+
 
 @app.post("/api/citas")
 async def procesar_cita(datos: Cita):
