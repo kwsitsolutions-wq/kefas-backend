@@ -80,15 +80,17 @@ def enviar_notificacion_kefas(datos: Lead):
     Nota: Los datos también han sido guardados en la tabla 'prospectos'.
     """
     mensaje.attach(MIMEText(cuerpo, "plain"))
-
-    try:                                                          # ✅ INSIDE the function
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as servidor:
+try:
+        # Cambiamos al puerto 587 con STARTTLS para que Render no bloquee la conexión
+        with smtplib.SMTP("smtp.gmail.com", 587) as servidor:
+            servidor.ehlo()
+            servidor.starttls()  # Activa el cifrado seguro
+            servidor.ehlo()
             servidor.login(email_usuario, email_password)
             servidor.send_message(mensaje)
-        print("✅ Notificación enviada con éxito.")
+        print(f"✅ Notificación enviada con éxito por email.")
     except Exception as e:
-        print(f"❌ Error al enviar notificación: {e}")
-
+        print(f"❌ Error al enviar notificación por email: {e}")
 
 @app.get("/")
 async def root():
