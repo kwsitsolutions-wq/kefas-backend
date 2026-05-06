@@ -50,7 +50,7 @@ def enviar_notificacion_kefas(datos: Lead):
 
     mensaje = MIMEMultipart()
     mensaje["From"] = email_usuario
-    mensaje["To"] = email_usuario  
+    mensaje["To"] = "kwsitsolutions@gmail.com" 
     mensaje["Subject"] = f"🔥 NUEVO PROSPECTO: {datos.nombre_empresa}"
 
     cuerpo = f"""
