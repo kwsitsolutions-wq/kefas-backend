@@ -17,7 +17,7 @@ app = FastAPI(title="Arcano Kefas - Lead Management")
 
 # 🟡 FIX #4 — CORS restringido a dominios reales en producción
 # Cambia los valores por tus dominios reales antes de desplegar
-ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "https://tu-dominio.com").split(",")
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "https://efasdigital.com").split(",")
 
 app.add_middleware(
     CORSMiddleware,
