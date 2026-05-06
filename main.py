@@ -72,7 +72,7 @@ Los datos han sido guardados en la tabla 'prospectos' en Hostinger.
         response = requests.post(
             "https://api.resend.com/emails",
             headers={
-                "Authorization": "Bearer re_aXMFcwSs_BBoMnZt3PHZimpzHgAQbX5en",
+               "Authorization": f"Bearer {os.environ.get('RESEND_API_KEY')}",
                 "Content-Type": "application/json"
             },
             json={
