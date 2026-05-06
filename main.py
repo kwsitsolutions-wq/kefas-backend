@@ -11,7 +11,7 @@ import mysql.connector
 from typing import Optional
 
 # =========================================================
-# 1. CONFIGURACIÓN DEL MOTOR ARCANO KEFAS v5.4
+# 1. CONFIGURACIÓN DEL MOTOR ARCANO KEFAS v5.5 (Hostinger SMTP)
 # =========================================================
 app = FastAPI(title="Arcano Kefas - Lead Management")
 
@@ -39,13 +39,13 @@ class Lead(BaseModel):
     origen_lead: Optional[str] = "Directo"
     codigo_asesor: Optional[str] = None
 
-# --- FUNCIÓN DE NOTIFICACIÓN POR EMAIL (CORREGIDA) ---
+# --- FUNCIÓN DE NOTIFICACIÓN POR EMAIL (HOSTINGER SMTP) ---
 def enviar_notificacion_kefas(datos: Lead):
     email_usuario = os.environ.get("EMAIL_USER")
     email_password = os.environ.get("EMAIL_PASS")
 
     if not email_usuario or not email_password:
-        print("⚠️ Error: Variables de email no configuradas.")
+        print("⚠️ Error: Variables de email no configuradas en Render.")
         return
 
     mensaje = MIMEMultipart()
@@ -80,21 +80,18 @@ def enviar_notificacion_kefas(datos: Lead):
     Link de Referencia: {datos.links_cliente}
     
     -------------------------------------------
-    Nota: Los datos también han sido guardados en la tabla 'prospectos'.
+    Nota: Los datos han sido guardados en la base de datos de Hostinger.
     """
     mensaje.attach(MIMEText(cuerpo, "plain"))
 
     try:
-        # Metido dentro de la función con sus 4 espacios de sangría obligatorios
-        with smtplib.SMTP("smtp.gmail.com", 587) as servidor:
-            servidor.ehlo()
-            servidor.starttls()  # Activa el cifrado seguro
-            servidor.ehlo()
+        # Configuración exacta para Hostinger (smtp.hostinger.com + Puerto 465 SSL)
+        with smtplib.SMTP_SSL("smtp.hostinger.com", 465) as servidor:
             servidor.login(email_usuario, email_password)
             servidor.send_message(mensaje)
-        print(f"✅ Notificación enviada con éxito por email.")
+        print(f"✅ Notificación enviada con éxito por Hostinger.")
     except Exception as e:
-        print(f"❌ Error al enviar notificación por email: {e}")
+        print(f"❌ Error al enviar notificación por Hostinger: {e}")
 
 @app.get("/")
 async def root():
@@ -124,7 +121,7 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         cursor = conexion.cursor()
         
         sql = """INSERT INTO prospectos 
-                  (nombre_empresa, representante, sector, whatsapp, email, 
+                  (nombre_empresa, representative, sector, whatsapp, email, 
                    vision_proyecto, personalidad_marca, temperatura_visual, 
                    objetivo_comunicacion, links_cliente, analisis_ia,
                    origen_lead, codigo_asesor) 
@@ -143,7 +140,8 @@ async def procesar_cuestionario(datos: Lead, request: Request):
         cursor.close()
         conexion.close()
 
-      #  enviar_notificacion_kefas(datos)
+        # EJECUCIÓN ACTIVA DEL CORREO SMTP
+        enviar_notificacion_kefas(datos)
 
         return {"status": "success", "message": "Lead y Referencia registrados correctamente."}
         
