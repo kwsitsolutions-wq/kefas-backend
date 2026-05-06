@@ -1,9 +1,7 @@
 import os
-import smtplib
+import requests
 import mysql.connector
 from pydantic import BaseModel
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
 # Definimos el modelo de datos para la Terminal
 class Cita(BaseModel):
@@ -14,37 +12,40 @@ class Cita(BaseModel):
     finalidad: str
 
 def registrar_cita_soporte(datos: Cita):
-    # 1. NOTIFICACIÓN POR EMAIL (Usando tu configuración de Gmail)
-    email_usuario = os.environ.get("EMAIL_USER")
-    email_password = os.environ.get("EMAIL_PASS")
+    # 1. NOTIFICACIÓN POR EMAIL (Resend API)
+    cuerpo = f"""
+Solicitud de Cita de Soporte/Consultoría:
 
-    if email_usuario and email_password:
-        mensaje = MIMEMultipart()
-        mensaje["From"] = email_usuario
-        mensaje["To"] = email_usuario
-        mensaje["Subject"] = f"🔴 NUEVA CITA SOPORTE: {datos.nombre}"
+Nombre:    {datos.nombre}
+Email:     {datos.email}
+Fecha:     {datos.fecha}
+Hora:      {datos.hora}
+Finalidad: {datos.finalidad}
 
-        cuerpo = f"""
-        Solicitud de Cita de Soporte/Consultoría:
-        
-        Nombre: {datos.nombre}
-        Email: {datos.email}
-        Fecha: {datos.fecha}
-        Hora: {datos.hora}
-        Finalidad: {datos.finalidad}
-        
-        -------------------------------------------
-        Nota: Datos guardados en la tabla 'citas_consultoria'.
-        """
-        mensaje.attach(MIMEText(cuerpo, "plain"))
+-------------------------------------------
+Nota: Datos guardados en la tabla 'citas_consultoria'.
+    """
 
-        try:
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as servidor:
-                servidor.login(email_usuario, email_password)
-                servidor.send_message(mensaje)
-            print("✅ Notificación de cita enviada.")
-        except Exception as e:
-            print(f"❌ Error email cita: {e}")
+    try:
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": "Bearer re_aXMFcwSs_BBoMnZt3PHZimpzHgAQbX5en",
+                "Content-Type": "application/json"
+            },
+            json={
+                "from": "Kefas Digital <support@send.kefasdigital.com>",
+                "to": ["kwsitsolutions@gmail.com"],
+                "subject": f"🔴 NUEVA CITA SOPORTE: {datos.nombre}",
+                "text": cuerpo
+            }
+        )
+        if response.status_code == 200:
+            print("✅ Notificación de cita enviada vía Resend.")
+        else:
+            print(f"❌ Error Resend cita: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"❌ Error inesperado email cita: {e}")
 
     # 2. GUARDAR EN BASE DE DATOS (Hostinger)
     try:
@@ -58,9 +59,9 @@ def registrar_cita_soporte(datos: Cita):
         sql = """INSERT INTO citas_consultoria 
                  (nombre, email, fecha, hora, finalidad) 
                  VALUES (%s, %s, %s, %s, %s)"""
-        
+
         valores = (datos.nombre, datos.email, datos.fecha, datos.hora, datos.finalidad)
-        
+
         cursor.execute(sql, valores)
         conexion.commit()
         cursor.close()
